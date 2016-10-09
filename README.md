@@ -1,8 +1,6 @@
 # ufocatch
 
-
-
-## Description
+ufocatch is a command line interface for [有報キャッチャー](ufocatch.com).
 
 ## Usage
 
