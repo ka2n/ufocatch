@@ -35,10 +35,12 @@ $ ufocatch list 'query' | head -n1 | ufocatch get
 
 ## Install
 
-To install, use `go get`:
+[Binary packages](https://github.com/ka2n/ufocatch/releases) are available for Mac, Linux.
+
+To install from source, use `go get`:
 
 ```bash
-$ go get -d github.com/ka2n/ufocatch
+$ go get github.com/ka2n/ufocatch
 ```
 
 ## Contribution
