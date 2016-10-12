@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -119,7 +120,9 @@ func Download(ctx context.Context, ep Endpoint, format Format, id string) (strin
 
 func fileNameByHeader(h http.Header, base string) string {
 	if t, params, _ := mime.ParseMediaType(h.Get("Content-Disposition")); t == "attachment" {
-		return params["filename"]
+		if ext := filepath.Ext(params["filename"]); ext != "" {
+			return base + ext
+		}
 	}
 	if t, _, _ := mime.ParseMediaType(h.Get("Content-Type")); t != "" {
 		switch {
