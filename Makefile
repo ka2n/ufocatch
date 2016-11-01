@@ -1,4 +1,4 @@
-BINARY=ufocatch
+BINARY=bin/ufocatch
 SOURCEDIR=.
 SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
 TESTS := $(shell go list ./... | grep -v 'vendor')

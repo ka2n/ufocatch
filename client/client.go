@@ -1,4 +1,5 @@
-package ufocatcher
+// Package client implements ufocatch.Client interface
+package client
 
 import (
 	"context"
@@ -12,30 +13,12 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-)
 
-// Category for resource
-type Category string
-
-// List of categories
-const (
-	CategoryEdinet  Category = "edinet"
-	CategoryEdinetx          = "edinetx"
-	CategoryTdnet            = "tdnet"
-	CategoryTdnetx           = "tdnetx"
-	CategoryCg               = "cg"
-)
-
-// Endpoint for request
-type Endpoint string
-
-const (
-	// DefaultEndpoint for ufocatch API
-	DefaultEndpoint Endpoint = "http://resource.ufocatch.com"
+	"github.com/ka2n/ufocatch/ufocatch"
 )
 
 // Get /atom/{種別}/query/{クエリワード}
-func Get(ctx context.Context, ep Endpoint, cat Category, query string) (*Feed, error) {
+func Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Category, query string) (*ufocatch.Feed, error) {
 	p := path.Join("/atom/", string(cat), "/query", query)
 	req, err := http.NewRequest("GET", string(ep)+p, nil)
 	if err != nil {
@@ -54,7 +37,7 @@ func Get(ctx context.Context, ep Endpoint, cat Category, query string) (*Feed, e
 		return nil, fmt.Errorf("invalid response: code: %v, body: %v", r.StatusCode, string(b))
 	}
 
-	var feed Feed
+	var feed ufocatch.Feed
 	if err := xml.NewDecoder(r.Body).Decode(&feed); err != nil {
 		return nil, err
 	}
@@ -62,17 +45,8 @@ func Get(ctx context.Context, ep Endpoint, cat Category, query string) (*Feed, e
 	return &feed, nil
 }
 
-// Format of file to download
-type Format string
-
-// List of formats
-const (
-	FormatData Format = "data"
-	FormatPDF         = "pdf"
-)
-
 // Download /{format: pdf, data}/{source: edinet/tdnet}/{id}
-func Download(ctx context.Context, ep Endpoint, format Format, id string) (string, error) {
+func Download(ctx context.Context, ep ufocatch.Endpoint, format ufocatch.Format, id string) (string, error) {
 	source := sourceByID(id)
 	if source == "" {
 		return "", fmt.Errorf("unknown format for id: '%v'", id)

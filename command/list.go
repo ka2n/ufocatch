@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ka2n/ufocatch/ufocatcher"
+	"github.com/ka2n/ufocatch/ufocatch"
 )
 
 // ListCommand implements `ufocatch list <query>` command
 type ListCommand struct {
 	Meta
+	Client ufocatch.Client
 }
 
 // Run list command
@@ -26,7 +27,7 @@ func (c *ListCommand) Run(args []string) int {
 	c.Ui.Error("Searching...: " + query)
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
 	defer cancel()
-	feed, err := ufocatcher.Get(ctx, ufocatcher.DefaultEndpoint, cat, query)
+	feed, err := c.Client.Get(ctx, ufocatch.DefaultEndpoint, cat, query)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -53,7 +54,7 @@ To find EDINET(with XBRL) resources (default)
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ListCommand) parseListArgs(args []string) (string, ufocatcher.Category, error) {
+func (c *ListCommand) parseListArgs(args []string) (string, ufocatch.Category, error) {
 	var source string
 	var ask bool
 
@@ -79,20 +80,20 @@ func (c *ListCommand) parseListArgs(args []string) (string, ufocatcher.Category,
 		return "", "", errors.New("query is mandatory")
 	}
 
-	var cat ufocatcher.Category
+	var cat ufocatch.Category
 	switch source {
 	case "":
-		cat = ufocatcher.CategoryEdinetx
-	case string(ufocatcher.CategoryEdinet):
-		cat = ufocatcher.CategoryEdinet
-	case string(ufocatcher.CategoryEdinetx):
-		cat = ufocatcher.CategoryEdinetx
-	case string(ufocatcher.CategoryTdnet):
-		cat = ufocatcher.CategoryTdnet
-	case string(ufocatcher.CategoryTdnetx):
-		cat = ufocatcher.CategoryTdnetx
-	case string(ufocatcher.CategoryCg):
-		cat = ufocatcher.CategoryCg
+		cat = ufocatch.CategoryEdinetx
+	case string(ufocatch.CategoryEdinet):
+		cat = ufocatch.CategoryEdinet
+	case string(ufocatch.CategoryEdinetx):
+		cat = ufocatch.CategoryEdinetx
+	case string(ufocatch.CategoryTdnet):
+		cat = ufocatch.CategoryTdnet
+	case string(ufocatch.CategoryTdnetx):
+		cat = ufocatch.CategoryTdnetx
+	case string(ufocatch.CategoryCg):
+		cat = ufocatch.CategoryCg
 	}
 	if cat == "" {
 		return "", "", errors.New("source is invalid: " + source)
