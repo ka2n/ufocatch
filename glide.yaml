@@ -1,3 +1,6 @@
 package: github.com/ka2n/ufocatch
 import:
 - package: github.com/mitchellh/cli
+- package: golang.org/x/sync
+  subpackages:
+  - errgroup
