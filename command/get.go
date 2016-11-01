@@ -14,6 +14,7 @@ import (
 	"flag"
 
 	"github.com/ka2n/ufocatch/ufocatch"
+	"github.com/ka2n/ufocatch/util"
 )
 
 // GetCommand impliments `ufocatch get <id>` command
@@ -83,7 +84,7 @@ func parseArgs(args []string) (string, ufocatch.Format, error) {
 	if isaStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			rawID = scanner.Text()
+			rawID = util.StripANSISequence(scanner.Text())
 			break
 		}
 	}
