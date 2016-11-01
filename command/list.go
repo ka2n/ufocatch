@@ -7,6 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+	"os"
+
+	"bufio"
+
 	"github.com/ka2n/ufocatch/ufocatch"
 )
 
@@ -28,6 +33,9 @@ func (c *ListCommand) Run(args []string) int {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
 	done := make(chan error)
+
+	output := bufio.NewWriter(os.Stdout)
+	defer output.Flush()
 	go func() {
 		feed, err := c.Client.Get(ctx, ufocatch.DefaultEndpoint, cat, query)
 		if err != nil {
@@ -36,7 +44,7 @@ func (c *ListCommand) Run(args []string) int {
 		}
 
 		for _, entry := range feed.Entries {
-			c.Ui.Output(entry.ID + ": " + entry.Title)
+			fmt.Fprintln(output, entry.ID+": "+entry.Title)
 		}
 		close(done)
 	}()
