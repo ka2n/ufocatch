@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 )
 
 func waitSignal(ctx context.Context, cancel context.CancelFunc, done chan error) error {
 	sig := make(chan os.Signal, 4)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sig, os.Interrupt)
 
 	select {
 	case s := <-sig:
