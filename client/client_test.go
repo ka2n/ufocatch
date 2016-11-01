@@ -1,4 +1,4 @@
-package ufocatcher
+package client
 
 import (
 	"context"

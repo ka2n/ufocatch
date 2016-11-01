@@ -13,12 +13,13 @@ import (
 
 	"flag"
 
-	"github.com/ka2n/ufocatch/ufocatcher"
+	"github.com/ka2n/ufocatch/ufocatch"
 )
 
 // GetCommand impliments `ufocatch get <id>` command
 type GetCommand struct {
 	Meta
+	Client ufocatch.Client
 }
 
 // Run get command
@@ -29,15 +30,23 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
-	name, err := ufocatcher.Download(ctx, ufocatcher.DefaultEndpoint, format, id)
-	if err != nil {
+	done := make(chan error)
+	go func() {
+		name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
+		if err != nil {
+			done <- err
+			return
+		}
+		c.Ui.Output(fmt.Sprintf("saved: %v", name))
+		close(done)
+	}()
+
+	if err := waitSignal(ctx, cancel, done); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	c.Ui.Output(fmt.Sprintf("saved: %v", name))
 	return 0
 }
 
@@ -48,9 +57,14 @@ func (c *GetCommand) Synopsis() string {
 
 // Help for get command
 func (c *GetCommand) Help() string {
-	helpText := `Get resources by ID.
-	
+	helpText := `
+Usage: ufocatch get <ID> [OPTIONS]
+
+Get resources by ID.
 This command searches ID string from args, then retrieve a resource on your filesystem.
+
+Options:
+    --format=xbrl        File format to download. 'pdf' or 'xbrl'
 
 To get XBRL zip archive(default)
 	ufocatch get ED2014121600183 --format=xbrl
@@ -64,7 +78,7 @@ Also, you can use standard input like this.
 	return strings.TrimSpace(helpText)
 }
 
-func parseArgs(args []string) (string, ufocatcher.Format, error) {
+func parseArgs(args []string) (string, ufocatch.Format, error) {
 	var rawID string
 	if isaStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -93,12 +107,12 @@ func parseArgs(args []string) (string, ufocatcher.Format, error) {
 		return "", "", errors.New("invalid id: " + rawID)
 	}
 
-	var dataFormat ufocatcher.Format
+	var dataFormat ufocatch.Format
 	switch format {
 	case "xbrl":
-		dataFormat = ufocatcher.FormatData
+		dataFormat = ufocatch.FormatData
 	case "pdf":
-		dataFormat = ufocatcher.FormatPDF
+		dataFormat = ufocatch.FormatPDF
 	}
 	if dataFormat == "" {
 		return "", "", errors.New("format is invalid: " + format)
