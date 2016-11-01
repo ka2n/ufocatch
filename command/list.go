@@ -25,16 +25,25 @@ func (c *ListCommand) Run(args []string) int {
 	}
 
 	c.Ui.Error("Searching...: " + query)
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
-	feed, err := c.Client.Get(ctx, ufocatch.DefaultEndpoint, cat, query)
-	if err != nil {
+	done := make(chan error)
+	go func() {
+		feed, err := c.Client.Get(ctx, ufocatch.DefaultEndpoint, cat, query)
+		if err != nil {
+			done <- err
+			return
+		}
+
+		for _, entry := range feed.Entries {
+			c.Ui.Output(entry.ID + ": " + entry.Title)
+		}
+		close(done)
+	}()
+
+	if err := waitSignal(ctx, cancel, done); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
-	}
-
-	for _, entry := range feed.Entries {
-		c.Ui.Output(entry.ID + ": " + entry.Title)
 	}
 	return 0
 }

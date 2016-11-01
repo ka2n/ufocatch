@@ -17,8 +17,11 @@ import (
 	"github.com/ka2n/ufocatch/ufocatch"
 )
 
+// Client satisfies ufocatch.Client
+type Client struct{}
+
 // Get /atom/{種別}/query/{クエリワード}
-func Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Category, query string) (*ufocatch.Feed, error) {
+func (c Client) Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Category, query string) (*ufocatch.Feed, error) {
 	p := path.Join("/atom/", string(cat), "/query", query)
 	req, err := http.NewRequest("GET", string(ep)+p, nil)
 	if err != nil {
@@ -46,7 +49,7 @@ func Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Category, query
 }
 
 // Download /{format: pdf, data}/{source: edinet/tdnet}/{id}
-func Download(ctx context.Context, ep ufocatch.Endpoint, format ufocatch.Format, id string) (string, error) {
+func (c Client) Download(ctx context.Context, ep ufocatch.Endpoint, format ufocatch.Format, id string) (string, error) {
 	source := sourceByID(id)
 	if source == "" {
 		return "", fmt.Errorf("unknown format for id: '%v'", id)

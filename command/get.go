@@ -30,15 +30,23 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
-	name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
-	if err != nil {
+	done := make(chan error)
+	go func() {
+		name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
+		if err != nil {
+			done <- err
+			return
+		}
+		c.Ui.Output(fmt.Sprintf("saved: %v", name))
+		close(done)
+	}()
+
+	if err := waitSignal(ctx, cancel, done); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	c.Ui.Output(fmt.Sprintf("saved: %v", name))
 	return 0
 }
 
