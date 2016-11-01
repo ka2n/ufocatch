@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/ka2n/ufocatch/ufocatch"
 )
 
 var mockHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +29,7 @@ func TestGet(t *testing.T) {
 	defer ts.Close()
 
 	ctx := context.Background()
-	feed, err := Get(ctx, ts.URL, CategoryEdinetx, "4751")
+	feed, err := Client{}.Get(ctx, ufocatch.Endpoint(ts.URL), ufocatch.CategoryEdinetx, "4751")
 	if err != nil {
 		t.Fatal(err)
 	}

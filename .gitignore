@@ -1,4 +1,4 @@
 *.test
-ufocatch
 dist
+bin
 pkg
