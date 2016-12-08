@@ -13,6 +13,8 @@ import (
 
 	"flag"
 
+	"net/http"
+
 	"github.com/ka2n/ufocatch/ufocatch"
 	"github.com/ka2n/ufocatch/util"
 	"golang.org/x/sync/errgroup"
@@ -21,12 +23,17 @@ import (
 // GetCommand impliments `ufocatch get <id>` command
 type GetCommand struct {
 	Meta
-	Client ufocatch.Client
 }
 
 // Run get command
 func (c *GetCommand) Run(args []string) int {
 	ids, format, err := parseArgs(args)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	client, err := ufocatch.New(ufocatch.DefaultEndpoint, http.DefaultClient)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -40,7 +47,7 @@ func (c *GetCommand) Run(args []string) int {
 	for _, id := range ids {
 		id := id
 		wg.Go(func() error {
-			name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
+			name, err := client.Download(ctx, format, id)
 			if err != nil {
 				return err
 			}
@@ -89,7 +96,7 @@ Also, you can use standard input like this.
 	return strings.TrimSpace(helpText)
 }
 
-func parseArgs(args []string) ([]string, ufocatch.Format, error) {
+func parseArgs(args []string) ([]string, string, error) {
 	var rawID []string
 	if isaStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -126,7 +133,7 @@ func parseArgs(args []string) ([]string, ufocatch.Format, error) {
 		ids[i] = id
 	}
 
-	var dataFormat ufocatch.Format
+	var dataFormat string
 	switch format {
 	case "xbrl":
 		dataFormat = ufocatch.FormatData

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"net/http"
 	"strings"
 	"time"
 
@@ -18,12 +19,17 @@ import (
 // ListCommand implements `ufocatch list <query>` command
 type ListCommand struct {
 	Meta
-	Client ufocatch.Client
 }
 
 // Run list command
 func (c *ListCommand) Run(args []string) int {
 	query, cat, err := c.parseListArgs(args)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	client, err := ufocatch.New(ufocatch.DefaultEndpoint, http.DefaultClient)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -37,7 +43,7 @@ func (c *ListCommand) Run(args []string) int {
 	output := bufio.NewWriter(os.Stdout)
 	defer output.Flush()
 	go func() {
-		feed, err := c.Client.Get(ctx, ufocatch.DefaultEndpoint, cat, query)
+		feed, err := client.Get(ctx, cat, query)
 		if err != nil {
 			done <- err
 			return
@@ -71,7 +77,7 @@ To find EDINET(with XBRL) resources (default)
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ListCommand) parseListArgs(args []string) (string, ufocatch.Category, error) {
+func (c *ListCommand) parseListArgs(args []string) (string, string, error) {
 	var source string
 	var ask bool
 
@@ -97,19 +103,19 @@ func (c *ListCommand) parseListArgs(args []string) (string, ufocatch.Category, e
 		return "", "", errors.New("query is mandatory")
 	}
 
-	var cat ufocatch.Category
+	var cat string
 	switch source {
 	case "":
 		cat = ufocatch.CategoryEdinetx
-	case string(ufocatch.CategoryEdinet):
+	case ufocatch.CategoryEdinet:
 		cat = ufocatch.CategoryEdinet
-	case string(ufocatch.CategoryEdinetx):
+	case ufocatch.CategoryEdinetx:
 		cat = ufocatch.CategoryEdinetx
-	case string(ufocatch.CategoryTdnet):
+	case ufocatch.CategoryTdnet:
 		cat = ufocatch.CategoryTdnet
-	case string(ufocatch.CategoryTdnetx):
+	case ufocatch.CategoryTdnetx:
 		cat = ufocatch.CategoryTdnetx
-	case string(ufocatch.CategoryCg):
+	case ufocatch.CategoryCg:
 		cat = ufocatch.CategoryCg
 	}
 	if cat == "" {
