@@ -1,5 +1,5 @@
-hash: bbdcf0c8d6e6c6b69ac5f3d4a21d14c749d1a8d2501767586133241ac6a6239b
-updated: 2016-10-11T11:13:25.71485635+09:00
+hash: 6c40cc72e394de47d87a02cba5e148f68ac1a4c4cb50cedb5e65dee883c4473d
+updated: 2016-11-01T14:40:52.146301898+09:00
 imports:
 - name: github.com/armon/go-radix
   version: 4239b77079c7b5d1243b7b4736304ce8ddb6f0f2
@@ -9,6 +9,14 @@ imports:
   version: 66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8
 - name: github.com/mitchellh/cli
   version: 2b05dd12fcaee6566e0a8a256c7996d7038ddf6c
+- name: golang.org/x/net
+  version: 541150ac4f433e755f5663eba5d888c2fa347343
+  subpackages:
+  - context
+- name: golang.org/x/sync
+  version: 1ae7c7b29e06598039be46c5083819ba6fd7a97e
+  subpackages:
+  - errgroup
 - name: golang.org/x/sys
   version: 67f277b6fe017c42fc3b4a445edc999dd99edd58
   subpackages:

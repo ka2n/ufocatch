@@ -14,6 +14,8 @@ import (
 	"flag"
 
 	"github.com/ka2n/ufocatch/ufocatch"
+	"github.com/ka2n/ufocatch/util"
+	"golang.org/x/sync/errgroup"
 )
 
 // GetCommand impliments `ufocatch get <id>` command
@@ -24,7 +26,7 @@ type GetCommand struct {
 
 // Run get command
 func (c *GetCommand) Run(args []string) int {
-	id, format, err := parseArgs(args)
+	ids, format, err := parseArgs(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -33,14 +35,23 @@ func (c *GetCommand) Run(args []string) int {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
 	done := make(chan error)
+
+	wg := errgroup.Group{}
+	for _, id := range ids {
+		id := id
+		wg.Go(func() error {
+			name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
+			if err != nil {
+				return err
+			}
+			c.Ui.Output(fmt.Sprintf("saved: %v", name))
+			return nil
+		})
+	}
+
 	go func() {
-		name, err := c.Client.Download(ctx, ufocatch.DefaultEndpoint, format, id)
-		if err != nil {
-			done <- err
-			return
-		}
-		c.Ui.Output(fmt.Sprintf("saved: %v", name))
-		close(done)
+		err := wg.Wait()
+		done <- err
 	}()
 
 	if err := waitSignal(ctx, cancel, done); err != nil {
@@ -78,13 +89,14 @@ Also, you can use standard input like this.
 	return strings.TrimSpace(helpText)
 }
 
-func parseArgs(args []string) (string, ufocatch.Format, error) {
-	var rawID string
+func parseArgs(args []string) ([]string, ufocatch.Format, error) {
+	var rawID []string
 	if isaStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			rawID = scanner.Text()
-			break
+			txt := scanner.Text()
+			txt = util.StripANSISequence(txt)
+			rawID = append(rawID, txt)
 		}
 	}
 
@@ -92,19 +104,26 @@ func parseArgs(args []string) (string, ufocatch.Format, error) {
 	opt := flag.NewFlagSet("get", flag.ContinueOnError)
 	opt.StringVar(&format, "format", "xbrl", "Format to retrieve")
 	if err := opt.Parse(args); err != nil {
-		return "", "", err
-	}
-	if rawID == "" {
-		rawID = opt.Arg(0)
+		return nil, "", err
 	}
 
-	if rawID == "" {
-		return "", "", errors.New("query is mandatory")
+	if len(rawID) == 0 {
+		for _, arg := range opt.Args() {
+			rawID = append(rawID, arg)
+		}
 	}
 
-	id := parseRawID(rawID)
-	if id == "" {
-		return "", "", errors.New("invalid id: " + rawID)
+	if len(rawID) == 0 {
+		return nil, "", errors.New("query is mandatory")
+	}
+
+	ids := make([]string, len(rawID))
+	for i, raw := range rawID {
+		id := parseRawID(raw)
+		if id == "" {
+			return nil, "", errors.New("invalid id: " + raw)
+		}
+		ids[i] = id
 	}
 
 	var dataFormat ufocatch.Format
@@ -115,10 +134,10 @@ func parseArgs(args []string) (string, ufocatch.Format, error) {
 		dataFormat = ufocatch.FormatPDF
 	}
 	if dataFormat == "" {
-		return "", "", errors.New("format is invalid: " + format)
+		return nil, "", errors.New("format is invalid: " + format)
 	}
 
-	return id, dataFormat, nil
+	return ids, dataFormat, nil
 }
 
 func isaStdin() bool {
