@@ -1,5 +1,4 @@
-// Package client implements ufocatch.Client interface
-package client
+package ufocatch
 
 import (
 	"context"
@@ -13,23 +12,40 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/ka2n/ufocatch/ufocatch"
 )
 
-// Client satisfies ufocatch.Client
-type Client struct{}
+// New Client
+func New(endpoint string, client *http.Client) (*Client, error) {
+	if endpoint == "" {
+		endpoint = DefaultEndpoint
+	}
+
+	if client == nil {
+		client = http.DefaultClient
+	}
+
+	return &Client{
+		Endpoint: endpoint,
+		Client:   client,
+	}, nil
+}
+
+// Client retrieves Feed from ufocatcher
+type Client struct {
+	Endpoint string
+	Client   *http.Client
+}
 
 // Get /atom/{種別}/query/{クエリワード}
-func (c Client) Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Category, query string) (*ufocatch.Feed, error) {
-	p := path.Join("/atom/", string(cat), "/query", query)
-	req, err := http.NewRequest("GET", string(ep)+p, nil)
+func (c Client) Get(ctx context.Context, cat string, query string) (*Feed, error) {
+	p := c.Endpoint + path.Join("/atom/", string(cat), "/query", query)
+	req, err := http.NewRequest("GET", p, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Cancel = ctx.Done()
+	req = req.WithContext(ctx)
 
-	r, err := http.DefaultClient.Do(req)
+	r, err := c.Client.Do(req)
 
 	if err != nil {
 		return nil, err
@@ -40,7 +56,7 @@ func (c Client) Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Cate
 		return nil, fmt.Errorf("invalid response: code: %v, body: %v", r.StatusCode, string(b))
 	}
 
-	var feed ufocatch.Feed
+	var feed Feed
 	if err := xml.NewDecoder(r.Body).Decode(&feed); err != nil {
 		return nil, err
 	}
@@ -49,23 +65,22 @@ func (c Client) Get(ctx context.Context, ep ufocatch.Endpoint, cat ufocatch.Cate
 }
 
 // Download /{format: pdf, data}/{source: edinet/tdnet}/{id}
-func (c Client) Download(ctx context.Context, ep ufocatch.Endpoint, format ufocatch.Format, id string) (string, error) {
+func (c Client) Download(ctx context.Context, format string, id string) (string, error) {
 	source := sourceByID(id)
 	if source == "" {
 		return "", fmt.Errorf("unknown format for id: '%v'", id)
 	}
 
 	// Create request
-	p := path.Join("/", string(format), source, id)
-	urlStr := string(ep) + p
+	urlStr := c.Endpoint + path.Join("/", format, source, id)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return "", err
 	}
-	req.Cancel = ctx.Done()
+	req = req.WithContext(ctx)
 
 	// Execute request
-	r, err := http.DefaultClient.Do(req)
+	r, err := c.Client.Do(req)
 	if err != nil {
 		return "", err
 	}

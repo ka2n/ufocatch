@@ -1,4 +1,4 @@
-package client
+package ufocatch
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/ka2n/ufocatch/ufocatch"
 )
 
 var mockHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +27,11 @@ func TestGet(t *testing.T) {
 	defer ts.Close()
 
 	ctx := context.Background()
-	feed, err := Client{}.Get(ctx, ufocatch.Endpoint(ts.URL), ufocatch.CategoryEdinetx, "4751")
+	client, err := New(ts.URL, http.DefaultClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	feed, err := client.Get(ctx, CategoryEdinetx, "4751")
 	if err != nil {
 		t.Fatal(err)
 	}
