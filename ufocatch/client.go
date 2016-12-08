@@ -38,8 +38,11 @@ type Client struct {
 
 // Get /atom/{種別}/query/{クエリワード}
 func (c Client) Get(ctx context.Context, cat string, query string) (*Feed, error) {
-	p := c.Endpoint + path.Join("/atom/", string(cat), "/query", query)
-	req, err := http.NewRequest("GET", p, nil)
+	p := path.Join("/atom", cat)
+	if query != "" {
+		p = path.Join(p, "query", query)
+	}
+	req, err := http.NewRequest("GET", c.Endpoint+p, nil)
 	if err != nil {
 		return nil, err
 	}

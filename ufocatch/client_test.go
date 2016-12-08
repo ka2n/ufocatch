@@ -2,7 +2,6 @@ package ufocatch
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,17 +9,23 @@ import (
 	"testing"
 )
 
-var mockHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI != "/atom/edinetx/query/4751" {
-		http.Error(w, fmt.Sprintf("invalid request URI: %v", r.RequestURI), 400)
-		return
+var mockHandler = http.NewServeMux()
+
+func init() {
+	serveFile := func(fname string, w http.ResponseWriter) {
+		f, err := os.Open(fname)
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(w, f)
 	}
-	f, err := os.Open("./test_file/edinetx.xml")
-	if err != nil {
-		panic(err)
-	}
-	io.Copy(w, f)
-})
+	mockHandler.HandleFunc("/atom/edinetx/query/4751", func(w http.ResponseWriter, r *http.Request) {
+		serveFile("./test_file/edinetx.xml", w)
+	})
+	mockHandler.HandleFunc("/atom/edinetx", func(w http.ResponseWriter, r *http.Request) {
+		serveFile("./test_file/edinetx.xml", w)
+	})
+}
 
 func TestGet(t *testing.T) {
 	ts := httptest.NewServer(mockHandler)
@@ -32,6 +37,14 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	feed, err := client.Get(ctx, CategoryEdinetx, "4751")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(feed.Entries) == 0 {
+		t.Errorf("expected at least 1 entry, but: %v", len(feed.Entries))
+	}
+
+	feed, err = client.Get(ctx, CategoryEdinetx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
