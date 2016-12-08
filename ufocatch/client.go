@@ -36,6 +36,34 @@ type Client struct {
 	Client   *http.Client
 }
 
+// GetPath /<pathStr>
+func (c Client) GetPath(ctx context.Context, pathStr string) (*Feed, error) {
+	req, err := http.NewRequest("GET", c.Endpoint+pathStr, nil)
+	if err != nil {
+		return nil, err
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	r, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	if r.StatusCode != http.StatusOK {
+		b, _ := ioutil.ReadAll(r.Body)
+		return nil, fmt.Errorf("invalid response: code: %v, body: %v", r.StatusCode, string(b))
+	}
+
+	var feed Feed
+	if err := xml.NewDecoder(r.Body).Decode(&feed); err != nil {
+		return nil, err
+	}
+
+	return &feed, nil
+}
+
 // Get /atom/{種別}/query/{クエリワード}
 func (c Client) Get(ctx context.Context, cat string, query string) (*Feed, error) {
 	p := path.Join("/atom", cat)
@@ -46,7 +74,9 @@ func (c Client) Get(ctx context.Context, cat string, query string) (*Feed, error
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
 
 	r, err := c.Client.Do(req)
 
@@ -80,7 +110,9 @@ func (c Client) Download(ctx context.Context, format string, id string) (string,
 	if err != nil {
 		return "", err
 	}
-	req = req.WithContext(ctx)
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
 
 	// Execute request
 	r, err := c.Client.Do(req)
