@@ -66,10 +66,10 @@ type Entry struct {
 func (e Entry) Link(rel string, format string) []*url.URL {
 	var links []*url.URL
 	for _, l := range e.Links {
-		if rel != "" && rel == l.Rel {
+		if rel != l.Rel {
 			continue
 		}
-		if format != "" && format == l.Type {
+		if format != l.Type {
 			continue
 		}
 		links = append(links, l.URL)
